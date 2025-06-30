@@ -90,15 +90,15 @@ def test_redact_content():
     expected_output = textwrap.dedent("""\
         Autocomplete the following command:
 
-        key import --file key.pem --password <REDACTED>
+        key import --file <REDACTED_HOSTNAME> --password <REDACTED>
 
         You may use the following command line history to personalize the
         response:
 
-        key import --file key.pem --password <REDACTED> --server server1.com
-        key import --file key.pem --password <REDACTED> --server server2.com
+        key import --file <REDACTED_HOSTNAME> --password <REDACTED> --server <REDACTED_HOSTNAME>
+        key import --file <REDACTED_HOSTNAME> --password <REDACTED> --server <REDACTED_HOSTNAME>
 
-        The content of key.pem is:
+        The content of <REDACTED_HOSTNAME> is:
 
         -----BEGIN PGP PRIVATE KEY BLOCK-----
         <REDACTED>
@@ -113,4 +113,23 @@ def test_nothing_to_redact():
 
 def test_do_not_redact():
     input_str = 'import-key --keyring /etc/apk/keys/foo.gpg'
-    assert redact_content(input_str) == input_str
+    expected_output = 'import-key --keyring /etc/apk/keys/<REDACTED_HOSTNAME>'
+    assert redact_content(input_str) == expected_output
+
+
+def test_redact_ip_mac_and_hostname():
+    input_str = 'ping 192.168.1.1'
+    expected_output = 'ping <REDACTED_IPV4>'
+    assert redact_content(input_str) == expected_output
+
+    input_str = 'ping 2001:db8:85a3:0:0:8a2e:370:123'
+    expected_output = 'ping <REDACTED_IPV6>'
+    assert redact_content(input_str) == expected_output
+
+    input_str = 'interface 01:23:45:67:89:ab'
+    expected_output = 'interface <REDACTED_MAC>'
+    assert redact_content(input_str) == expected_output
+
+    input_str = 'connect example.com'
+    expected_output = 'connect <REDACTED_HOSTNAME>'
+    assert redact_content(input_str) == expected_output
